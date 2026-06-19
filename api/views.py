@@ -105,7 +105,7 @@ class ArticleViewSet(viewsets.ModelViewSet):
         return ArticleDetailSerializer
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve', 'tree']:
+        if self.action in ['list', 'retrieve', 'featured', 'by_menu']:
             return [AllowAny()]
         return [IsAuthenticated()]
 

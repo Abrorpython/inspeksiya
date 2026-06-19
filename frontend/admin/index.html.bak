@@ -230,7 +230,7 @@ async function doLogin() {
 async function checkAuth() {
   if (!TOKEN) return false;
   try {
-    const r = await apiFetch(API + '/auth/me/', { headers: { Authorization: 'Bearer ' + TOKEN } });
+    const r = await fetch(API + '/auth/me/', { headers: { Authorization: 'Bearer ' + TOKEN } });
     if (r.ok) { currentUser = await r.json(); return true; }
     return false;
   } catch(e) { return false; }
@@ -249,56 +249,6 @@ function doLogout() {
 
 function authH() { return { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' }; }
 function authHForm() { return { Authorization: 'Bearer ' + TOKEN }; }
-
-// ── TOKEN REFRESH ──
-// Access tokens expire after 12h. Without this, any save made after that
-// silently fails with 401 and the user just sees a generic "Xatolik" toast.
-async function refreshAccessToken() {
-  var ref = localStorage.getItem('admin_refresh');
-  if (!ref) return false;
-  try {
-    const r = await fetch(API + '/auth/refresh/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh: ref })
-    });
-    if (!r.ok) return false;
-    const d = await r.json();
-    TOKEN = d.access;
-    localStorage.setItem('admin_token', TOKEN);
-    if (d.refresh) localStorage.setItem('admin_refresh', d.refresh);
-    return true;
-  } catch (e) { return false; }
-}
-
-function sessionExpired() {
-  TOKEN = '';
-  localStorage.removeItem('admin_token');
-  localStorage.removeItem('admin_refresh');
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('loginScreen').style.display = 'flex';
-  document.getElementById('loginErr').textContent = "Sessiya muddati tugadi, qaytadan kiring";
-}
-
-// Drop-in replacement for fetch() on authenticated endpoints: if the access
-// token has expired (401), it transparently refreshes and retries once.
-async function apiFetch(url, options) {
-  options = options || {};
-  var r = await fetch(url, options);
-  if (r.status === 401 && TOKEN) {
-    var ok = await refreshAccessToken();
-    if (ok) {
-      if (options.headers && options.headers.Authorization) {
-        options.headers.Authorization = 'Bearer ' + TOKEN;
-      }
-      r = await fetch(url, options);
-      if (r.status === 401) sessionExpired();
-    } else {
-      sessionExpired();
-    }
-  }
-  return r;
-}
 
 function initApp() {
   document.getElementById('loginScreen').style.display = 'none';
@@ -363,7 +313,7 @@ function openAddModal(page) {
 async function loadDashboard() {
   document.getElementById('pageContent').innerHTML = '<div style="color:rgba(255,255,255,.4);padding:20px">Yuklanmoqda...</div>';
   try {
-    const r = await apiFetch(API + '/dashboard/', { headers: authH() });
+    const r = await fetch(API + '/dashboard/', { headers: authH() });
     const d = await r.json();
     document.getElementById('pageContent').innerHTML =
       '<div class="stat-cards">' +
@@ -388,7 +338,7 @@ async function loadDashboard() {
 // ── MENUS ──
 async function loadMenus() {
   document.getElementById('pageContent').innerHTML = '<div style="color:rgba(255,255,255,.4);padding:20px">Yuklanmoqda...</div>';
-  const r = await apiFetch(API + '/menus/', { headers: authH() });
+  const r = await fetch(API + '/menus/', { headers: authH() });
   const d = await r.json();
   allMenus = d.results || d;
   var rows = '';
@@ -467,7 +417,7 @@ async function saveMenu() {
   var id = editingMenu ? editingMenu.id : null;
   var url = id ? API + '/menus/' + id + '/' : API + '/menus/';
   var method = id ? 'PATCH' : 'POST';
-  const r = await apiFetch(url, { method: method, headers: authH(), body: JSON.stringify(body) });
+  const r = await fetch(url, { method: method, headers: authH(), body: JSON.stringify(body) });
   if (r.ok) { toast(id ? 'Menyu yangilandi' : 'Menyu qo\'shildi'); closeModal(); loadMenus(); }
   else { const e = await r.json(); toast(JSON.stringify(e), 'error'); }
 }
@@ -475,7 +425,7 @@ async function saveMenu() {
 // ── ARTICLES ──
 async function loadArticles() {
   document.getElementById('pageContent').innerHTML = '<div style="color:rgba(255,255,255,.4);padding:20px">Yuklanmoqda...</div>';
-  const r = await apiFetch(API + '/articles/', { headers: authH() });
+  const r = await fetch(API + '/articles/', { headers: authH() });
   const d = await r.json();
   var articles = d.results || [];
   var cats = { news:'Yangiliklar', announcement:"E'lonlar", regulation:'Qonunchilik', report:'Hisobotlar', other:'Boshqa' };
@@ -523,7 +473,7 @@ var searchTimer;
 function searchArticles(q) {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(async function() {
-    const r = await apiFetch(API + '/articles/?search=' + encodeURIComponent(q), { headers: authH() });
+    const r = await fetch(API + '/articles/?search=' + encodeURIComponent(q), { headers: authH() });
     const d = await r.json();
     var articles = d.results || [];
     var cats = { news:'Yangiliklar', announcement:"E'lonlar", regulation:'Qonunchilik', report:'Hisobotlar', other:'Boshqa' };
@@ -542,13 +492,13 @@ function searchArticles(q) {
 }
 
 async function editArticleById(id) {
-  const r = await apiFetch(API + '/articles/' + id + '/', { headers: authH() });
+  const r = await fetch(API + '/articles/' + id + '/', { headers: authH() });
   const d = await r.json();
   openArticleModal(d);
 }
 
 async function openArticleModal(data) {
-  var mr = await apiFetch(API + '/menus/', { headers: authH() });
+  var mr = await fetch(API + '/menus/', { headers: authH() });
   var md = await mr.json();
   var menus = md.results || md;
   var menuOpts = '<option value="">— Tanlang —</option>';
@@ -603,13 +553,13 @@ async function saveArticle(id) {
   if (cover) form.append('cover_image', cover);
   var url = id ? API + '/articles/' + id + '/' : API + '/articles/';
   var method = id ? 'PATCH' : 'POST';
-  const r = await apiFetch(url, { method: method, headers: authHForm(), body: form });
+  const r = await fetch(url, { method: method, headers: authHForm(), body: form });
   if (r.ok) { toast(id ? 'Maqola yangilandi' : 'Maqola qo\'shildi'); closeModal(); loadArticles(); }
   else { const e = await r.json(); toast(JSON.stringify(e), 'error'); }
 }
 
 async function publishArticle(id) {
-  const r = await apiFetch(API + '/articles/' + id + '/publish/', { method: 'POST', headers: authH() });
+  const r = await fetch(API + '/articles/' + id + '/publish/', { method: 'POST', headers: authH() });
   if (r.ok) { toast('Maqola chop etildi ✅'); loadArticles(); }
   else toast('Xatolik', 'error');
 }
@@ -617,7 +567,7 @@ async function publishArticle(id) {
 // ── BANNERS ──
 async function loadBanners() {
   document.getElementById('pageContent').innerHTML = '<div style="color:rgba(255,255,255,.4);padding:20px">Yuklanmoqda...</div>';
-  const r = await apiFetch(API + '/banners/', { headers: authH() });
+  const r = await fetch(API + '/banners/', { headers: authH() });
   const d = await r.json();
   var banners = d.results || d;
   var rows = '';
@@ -686,7 +636,7 @@ async function saveBanner() {
   var id = editingBanner ? editingBanner.id : null;
   if (!id && !img) { toast('Rasm kerak', 'error'); return; }
   var url = id ? API + '/banners/' + id + '/' : API + '/banners/';
-  const r = await apiFetch(url, { method: id ? 'PATCH' : 'POST', headers: authHForm(), body: form });
+  const r = await fetch(url, { method: id ? 'PATCH' : 'POST', headers: authHForm(), body: form });
   if (r.ok) { toast(id ? 'Banner yangilandi' : 'Banner qo\'shildi'); closeModal(); loadBanners(); }
   else { const e = await r.json(); toast(JSON.stringify(e), 'error'); }
 }
@@ -694,7 +644,7 @@ async function saveBanner() {
 // ── MEDIA ──
 async function loadMedia() {
   document.getElementById('pageContent').innerHTML = '<div style="color:rgba(255,255,255,.4);padding:20px">Yuklanmoqda...</div>';
-  const r = await apiFetch(API + '/media/?page_size=50', { headers: authH() });
+  const r = await fetch(API + '/media/?page_size=50', { headers: authH() });
   const d = await r.json();
   var files = d.results || d;
   var items = '';
@@ -746,7 +696,7 @@ async function saveMedia() {
   var form = new FormData();
   form.append('name', name);
   form.append('file', file);
-  const r = await apiFetch(API + '/media/', { method: 'POST', headers: authHForm(), body: form });
+  const r = await fetch(API + '/media/', { method: 'POST', headers: authHForm(), body: form });
   if (r.ok) { toast('Fayl yuklandi ✅'); closeModal(); loadMedia(); }
   else toast('Xatolik', 'error');
 }
@@ -754,7 +704,7 @@ async function saveMedia() {
 // ── CONTACTS ──
 async function loadContacts() {
   document.getElementById('pageContent').innerHTML = '<div style="color:rgba(255,255,255,.4);padding:20px">Yuklanmoqda...</div>';
-  const r = await apiFetch(API + '/contacts/', { headers: authH() });
+  const r = await fetch(API + '/contacts/', { headers: authH() });
   const d = await r.json();
   var contacts = d.results || d;
   window._contacts = contacts;
@@ -815,7 +765,7 @@ function viewContactById(id) {
 
 async function updateContact() {
   if (!editingContact) return;
-  const r = await apiFetch(API + '/contacts/' + editingContact.id + '/set_status/', {
+  const r = await fetch(API + '/contacts/' + editingContact.id + '/set_status/', {
     method: 'PATCH',
     headers: authH(),
     body: JSON.stringify({ status: document.getElementById('cStatus').value, note: document.getElementById('cNote').value })
@@ -826,7 +776,7 @@ async function updateContact() {
 
 async function loadContactBadge() {
   try {
-    const r = await apiFetch(API + '/contacts/?status=new', { headers: authH() });
+    const r = await fetch(API + '/contacts/?status=new', { headers: authH() });
     const d = await r.json();
     var n = d.count || (d.results ? d.results.length : 0);
     var badge = document.getElementById('newContactBadge');
@@ -838,7 +788,7 @@ async function loadContactBadge() {
 // ── SETTINGS ──
 async function loadSettings() {
   document.getElementById('pageContent').innerHTML = '<div style="color:rgba(255,255,255,.4);padding:20px">Yuklanmoqda...</div>';
-  const r = await apiFetch(API + '/settings/', { headers: authH() });
+  const r = await fetch(API + '/settings/', { headers: authH() });
   const d = await r.json();
   var logoImg = d.logo_url ? '<img id="sLogoPrev" class="img-prev" src="' + d.logo_url + '" style="display:block" alt="">' : '<img id="sLogoPrev" class="img-prev" alt="">';
   document.getElementById('pageContent').innerHTML =
@@ -872,9 +822,9 @@ async function saveSettings() {
   for (var k in fields) form.append(k, document.getElementById(fields[k]).value);
   var logo = document.getElementById('sLogo').files[0];
   if (logo) form.append('logo', logo);
-  const r = await apiFetch(API + '/settings/', { method: 'PATCH', headers: authHForm(), body: form });
+  const r = await fetch(API + '/settings/', { method: 'PATCH', headers: authHForm(), body: form });
   if (r.ok) toast('Sozlamalar saqlandi ✅');
-  else { const e = await r.json().catch(function(){ return {}; }); toast(e.error || JSON.stringify(e) || 'Xatolik', 'error'); }
+  else toast('Xatolik', 'error');
 }
 
 async function changePass() {
@@ -883,7 +833,7 @@ async function changePass() {
   var cp = document.getElementById('pConf').value;
   if (!op || !np) { toast('Maydonlarni to\'ldiring', 'error'); return; }
   if (np !== cp) { toast('Yangi parollar mos emas', 'error'); return; }
-  const r = await apiFetch(API + '/auth/change-password/', { method: 'POST', headers: authH(), body: JSON.stringify({ old_password: op, new_password: np }) });
+  const r = await fetch(API + '/auth/change-password/', { method: 'POST', headers: authH(), body: JSON.stringify({ old_password: op, new_password: np }) });
   if (r.ok) { toast('Parol o\'zgartirildi ✅'); document.getElementById('pOld').value = ''; document.getElementById('pNew').value = ''; document.getElementById('pConf').value = ''; }
   else { const e = await r.json(); toast(e.error || 'Xatolik', 'error'); }
 }
@@ -901,7 +851,7 @@ function prevImg(input, prevId) {
 
 async function deleteItem(endpoint, id, reloadFn) {
   if (!confirm('O\'chirishga ishonchingiz komilmi?')) return;
-  const r = await apiFetch(API + '/' + endpoint + '/' + id + '/', { method: 'DELETE', headers: authH() });
+  const r = await fetch(API + '/' + endpoint + '/' + id + '/', { method: 'DELETE', headers: authH() });
   if (r.status === 204) { toast('O\'chirildi'); window[reloadFn](); }
   else toast('Xatolik', 'error');
 }

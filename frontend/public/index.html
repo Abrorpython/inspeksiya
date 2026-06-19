@@ -109,6 +109,10 @@ section{position:relative;z-index:1}
 .news-title-card{font-size:15px;font-weight:700;line-height:1.4;margin-bottom:10px;flex:1}
 .news-card.featured .news-title-card{font-size:18px}
 .news-date{font-size:11px;color:rgba(255,255,255,.35)}
+/* PAGE VIEW (menu category list / article detail) */
+.page-view-section{padding:150px 0 100px;min-height:60vh}
+.page-back{display:inline-block;font-size:11px;padding:9px 20px;margin-bottom:30px}
+.article-body p{margin-bottom:16px}
 /* CONTACT */
 .contact-section{padding:90px 0;background:linear-gradient(180deg,#06101f 0%,#0a1628 100%)}
 .contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:70px;align-items:start}
@@ -171,8 +175,8 @@ footer{background:#040c19;padding:56px 0 28px;border-top:1px solid rgba(200,151,
 <!-- NAV -->
 <nav id="navbar">
   <a class="nav-logo" href="/">
-    <div class="logo-emblem">🏛️</div>
-    <div class="logo-text">Nazorat Qilish<br>Inspeksiyasi</div>
+    <div class="logo-emblem" id="navLogoEmblem">🏛️</div>
+    <div class="logo-text" id="navLogoText">Nazorat Qilish<br>Inspeksiyasi</div>
   </a>
   <ul class="nav-menu-dynamic" id="dynamicMenu"></ul>
   <ul class="nav-links">
@@ -197,6 +201,8 @@ footer{background:#040c19;padding:56px 0 28px;border-top:1px solid rgba(200,151,
   </div>
 </div>
 
+<!-- HOME -->
+<div id="homeWrap">
 <!-- HERO -->
 <section class="hero" id="home">
   <div class="hero-bg"></div>
@@ -284,7 +290,7 @@ footer{background:#040c19;padding:56px 0 28px;border-top:1px solid rgba(200,151,
         <div class="section-label reveal">Yangiliklar va E'lonlar</div>
         <h2 class="section-title reveal">So'nggi Xabarlar</h2>
       </div>
-      <a href="#" class="btn-ghost" style="white-space:nowrap">Barchasini ko'rish →</a>
+      <a href="#barcha-maqolalar" class="btn-ghost" style="white-space:nowrap">Barchasini ko'rish →</a>
     </div>
     <div class="news-grid" id="newsGrid">
       <!-- Dynamic from API -->
@@ -327,16 +333,19 @@ footer{background:#040c19;padding:56px 0 28px;border-top:1px solid rgba(200,151,
   </div>
 </section>
 
+</div><!-- /homeWrap -->
+<div id="pageView" style="display:none"></div>
+
 <!-- FOOTER -->
 <footer>
   <div class="container">
     <div class="footer-top">
       <div>
         <div style="display:flex;align-items:center;gap:10px">
-          <div class="logo-emblem" style="width:38px;height:38px;font-size:17px">🏛️</div>
-          <div style="font-size:10px;font-weight:700;letter-spacing:.05em;color:var(--gold-l);text-transform:uppercase;line-height:1.3">Qurilish va Uy-Joy<br>Kommunal Xo'jaligi<br>Nazorat Inspeksiyasi</div>
+          <div class="logo-emblem" id="footerLogoEmblem" style="width:38px;height:38px;font-size:17px">🏛️</div>
+          <div id="footerLogoText" style="font-size:10px;font-weight:700;letter-spacing:.05em;color:var(--gold-l);text-transform:uppercase;line-height:1.3">Qurilish va Uy-Joy<br>Kommunal Xo'jaligi<br>Nazorat Inspeksiyasi</div>
         </div>
-        <p class="footer-desc">O'zbekiston Respublikasida qurilish va kommunal xo'jalik sohasida davlat nazoratini amalga oshiruvchi vakolatli organ.</p>
+        <p class="footer-desc" id="footerDesc">O'zbekiston Respublikasida qurilish va kommunal xo'jalik sohasida davlat nazoratini amalga oshiruvchi vakolatli organ.</p>
       </div>
       <div>
         <div class="footer-col-title">Tezkor havolalar</div>
@@ -366,7 +375,7 @@ footer{background:#040c19;padding:56px 0 28px;border-top:1px solid rgba(200,151,
       </div>
     </div>
     <div class="footer-bottom">
-      <span>© 2024 Nazorat Qilish Inspeksiyasi. Barcha huquqlar himoyalangan.</span>
+      <span id="footerCopyright">© 2024 Nazorat Qilish Inspeksiyasi. Barcha huquqlar himoyalangan.</span>
       <span>O'zbekiston Respublikasi Rasmiy Portali</span>
     </div>
   </div>
@@ -422,37 +431,173 @@ window.addEventListener('scroll',()=>{ document.getElementById('navbar').style.b
 function showToast(msg,type='success'){const t=document.getElementById('toast');t.textContent=msg;t.className=`toast ${type} show`;setTimeout(()=>t.className='toast',3500);}
 
 // ── LOAD MENUS ──
+let menuSlugMap = {}; // slug -> title, used by the router below
 async function loadMenus() {
   try {
     const r = await fetch('/api/menus/tree/');
     const data = await r.json();
-    const ul = document.getElementById('dynamicMenu');
-    if (!ul) return;
-    ul.innerHTML = '';
+    menuSlugMap = {};
     data.forEach(function(item) {
-      const li = document.createElement('li');
-      li.style.position = 'relative';
       if (item.children && item.children.length > 0) {
-        li.className = 'has-children';
-        li.innerHTML =
-          '<a href="#" style="color:rgba(255,255,255,.75);text-decoration:none;font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:8px 12px;border-radius:4px;display:block">'
-          + item.title + ' ▾</a>'
-          + '<div class="dropdown">'
-          + item.children.map(function(c) {
-              return '<a href="#' + c.slug + '">' + c.title + '</a>';
-            }).join('')
-          + '</div>';
+        item.children.forEach(function(c) { menuSlugMap[c.slug] = c.title; });
       } else {
-        li.innerHTML =
-          '<a href="#' + item.slug + '" style="color:rgba(255,255,255,.75);text-decoration:none;font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:8px 12px;border-radius:4px;display:block">'
-          + item.title + '</a>';
+        menuSlugMap[item.slug] = item.title;
       }
-      ul.appendChild(li);
     });
+    const ul = document.getElementById('dynamicMenu');
+    if (ul) {
+      ul.innerHTML = '';
+      data.forEach(function(item) {
+        const li = document.createElement('li');
+        li.style.position = 'relative';
+        if (item.children && item.children.length > 0) {
+          li.className = 'has-children';
+          li.innerHTML =
+            '<a href="#" style="color:rgba(255,255,255,.75);text-decoration:none;font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:8px 12px;border-radius:4px;display:block">'
+            + item.title + ' ▾</a>'
+            + '<div class="dropdown">'
+            + item.children.map(function(c) {
+                return '<a href="#' + c.slug + '">' + c.title + '</a>';
+              }).join('')
+            + '</div>';
+        } else {
+          li.innerHTML =
+            '<a href="#' + item.slug + '" style="color:rgba(255,255,255,.75);text-decoration:none;font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:8px 12px;border-radius:4px;display:block">'
+            + item.title + '</a>';
+        }
+        ul.appendChild(li);
+      });
+    }
   } catch(e) {
     console.log('Menu yuklanmadi:', e);
+  } finally {
+    router(); // resolve any deep link (e.g. shared #article-12 or #menu-slug URL) now that menus are known
   }
 }
+
+// ── ROUTER (menu category pages + article detail) ──
+// The site is a single static page: section links like #news/#contact just
+// scroll within the homepage. Menu items and news cards, however, need an
+// actual page to land on, which didn't exist before — this adds it.
+const ARTICLE_CATS = {'news':'Yangiliklar','announcement':"E'lonlar",'regulation':'Qonunchilik','report':'Hisobotlar','other':'Boshqa'};
+
+function escapeHtml(s) {
+  return (s == null ? '' : String(s)).replace(/[&<>"']/g, function(c) {
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+function textToParagraphs(s) {
+  return (s || '').split(/\n{2,}/).map(function(p) {
+    return '<p>' + escapeHtml(p).replace(/\n/g, '<br>') + '</p>';
+  }).join('');
+}
+
+function showHomeView() {
+  document.getElementById('homeWrap').style.display = '';
+  const pv = document.getElementById('pageView');
+  pv.style.display = 'none';
+  pv.innerHTML = '';
+}
+function showPageView(html) {
+  document.getElementById('homeWrap').style.display = 'none';
+  const pv = document.getElementById('pageView');
+  pv.style.display = '';
+  pv.innerHTML = html;
+  window.scrollTo(0, 0);
+  pv.querySelectorAll('.reveal').forEach(function(el) { el.classList.add('visible'); });
+}
+function pageBackLink() {
+  return '<a href="#" class="btn-ghost page-back">← Bosh sahifa</a>';
+}
+function renderNotFound(msg) {
+  showPageView('<section class="page-view-section"><div class="container" style="text-align:center">' + pageBackLink() +
+    '<p style="color:rgba(255,255,255,.5);padding:30px 0">' + escapeHtml(msg) + '</p></div></section>');
+}
+function articleCardHtml(a) {
+  return '<a href="#article-' + a.id + '" class="news-card reveal">' +
+    '<div class="news-img">' + (a.cover_image_url ? '<img src="' + a.cover_image_url + '" alt="">' : '<span style="position:relative;z-index:1">📰</span>') + '</div>' +
+    '<div class="news-body"><div class="news-cat">' + (ARTICLE_CATS[a.category] || a.category) + '</div>' +
+    '<div class="news-title-card">' + escapeHtml(a.title) + '</div>' +
+    '<div class="news-date">' + new Date(a.created_at).toLocaleDateString('uz-UZ') + '</div></div></a>';
+}
+
+async function renderArticleDetail(id) {
+  showPageView('<section class="page-view-section"><div class="container"><p style="color:rgba(255,255,255,.5)">Yuklanmoqda...</p></div></section>');
+  try {
+    const r = await fetch(`${API}/articles/${id}/`);
+    if (!r.ok) { renderNotFound("Maqola topilmadi"); return; }
+    const a = await r.json();
+    showPageView(
+      '<section class="page-view-section"><div class="container" style="max-width:820px">' +
+      pageBackLink() +
+      '<div class="section-label">' + (ARTICLE_CATS[a.category] || a.category) + '</div>' +
+      '<h1 class="section-title" style="font-size:clamp(24px,4vw,40px)">' + escapeHtml(a.title) + '</h1>' +
+      '<div style="color:rgba(255,255,255,.4);font-size:12px;margin-bottom:30px">' +
+        new Date(a.created_at).toLocaleDateString('uz-UZ') +
+        (a.menu_title ? ' · ' + escapeHtml(a.menu_title) : '') +
+        ' · ' + (a.views || 0) + " ko'rishlar" +
+      '</div>' +
+      (a.cover_image_url ? '<img src="' + a.cover_image_url + '" alt="" style="width:100%;border-radius:16px;margin-bottom:28px;max-height:440px;object-fit:cover">' : '') +
+      (a.intro ? '<p style="font-size:16px;color:rgba(255,255,255,.75);line-height:1.8;margin-bottom:22px;font-weight:600">' + escapeHtml(a.intro) + '</p>' : '') +
+      '<div class="article-body" style="font-size:14.5px;color:rgba(255,255,255,.75);line-height:1.9">' + textToParagraphs(a.body) + '</div>' +
+      '</div></section>'
+    );
+  } catch (e) { renderNotFound('Xatolik yuz berdi'); }
+}
+
+async function renderMenuArticles(slug) {
+  showPageView('<section class="page-view-section"><div class="container"><p style="color:rgba(255,255,255,.5)">Yuklanmoqda...</p></div></section>');
+  try {
+    const r = await fetch(`${API}/articles/by_menu/?slug=${encodeURIComponent(slug)}`);
+    const data = await r.json();
+    const articles = data.results || data;
+    const title = menuSlugMap[slug] || '';
+    const grid = !articles.length
+      ? '<p style="color:rgba(255,255,255,.4);text-align:center;padding:60px 0">Bu bo\'limda hozircha maqolalar yo\'q</p>'
+      : '<div class="news-grid">' + articles.map(articleCardHtml).join('') + '</div>';
+    showPageView(
+      '<section class="page-view-section"><div class="container">' +
+      pageBackLink() +
+      '<div class="section-label">Bo\'lim</div>' +
+      '<h1 class="section-title" style="margin-bottom:34px">' + escapeHtml(title) + '</h1>' +
+      grid +
+      '</div></section>'
+    );
+  } catch (e) { renderNotFound('Xatolik yuz berdi'); }
+}
+
+async function renderAllArticles() {
+  showPageView('<section class="page-view-section"><div class="container"><p style="color:rgba(255,255,255,.5)">Yuklanmoqda...</p></div></section>');
+  try {
+    const r = await fetch(`${API}/articles/?status=published&page_size=50&ordering=-created_at`);
+    const data = await r.json();
+    const articles = data.results || [];
+    const grid = !articles.length
+      ? '<p style="color:rgba(255,255,255,.4);text-align:center;padding:60px 0">Hozircha maqolalar yo\'q</p>'
+      : '<div class="news-grid">' + articles.map(articleCardHtml).join('') + '</div>';
+    showPageView(
+      '<section class="page-view-section"><div class="container">' +
+      pageBackLink() +
+      '<div class="section-label">Yangiliklar va E\'lonlar</div>' +
+      '<h1 class="section-title" style="margin-bottom:34px">Barcha Maqolalar</h1>' +
+      grid +
+      '</div></section>'
+    );
+  } catch (e) { renderNotFound('Xatolik yuz berdi'); }
+}
+
+function router() {
+  const hash = decodeURIComponent(location.hash.slice(1));
+  if (!hash) { showHomeView(); return; }
+  if (hash.indexOf('article-') === 0) { renderArticleDetail(hash.slice('article-'.length)); return; }
+  if (hash === 'barcha-maqolalar') { renderAllArticles(); return; }
+  if (menuSlugMap.hasOwnProperty(hash)) { renderMenuArticles(hash); return; }
+  // Not a menu/article route — treat as a same-page anchor (e.g. #contact, #services)
+  showHomeView();
+  const el = document.getElementById(hash);
+  if (el) setTimeout(function() { el.scrollIntoView({ behavior: 'smooth' }); }, 50);
+}
+window.addEventListener('hashchange', router);
 
 // ── LOAD BANNERS (SLIDER) ──
 async function loadBanners(){
@@ -527,6 +672,28 @@ async function loadSettings(){
     if(d.facebook) document.getElementById('footerFacebook').href=d.facebook;
     if(d.instagram) document.getElementById('footerInstagram').href=d.instagram;
     if(d.site_name) document.title=d.site_name;
+
+    // Navbar + footer brand block — previously hardcoded text/emoji, never
+    // reflected what's actually saved in Sozlamalar (site_name / logo).
+    if (d.site_name) {
+      const navText = document.getElementById('navLogoText');
+      if (navText) navText.textContent = d.site_name;
+      const footText = document.getElementById('footerLogoText');
+      if (footText) footText.textContent = d.site_name;
+      const copy = document.getElementById('footerCopyright');
+      if (copy) copy.textContent = '© ' + new Date().getFullYear() + ' ' + d.site_name + '. Barcha huquqlar himoyalangan.';
+    }
+    if (d.logo_url) {
+      const logoImgHtml = '<img src="' + d.logo_url + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+      const navEmblem = document.getElementById('navLogoEmblem');
+      if (navEmblem) navEmblem.innerHTML = logoImgHtml;
+      const footEmblem = document.getElementById('footerLogoEmblem');
+      if (footEmblem) footEmblem.innerHTML = logoImgHtml;
+    }
+    if (d.footer_text) {
+      const fd = document.getElementById('footerDesc');
+      if (fd) fd.textContent = d.footer_text;
+    }
   }catch(e){}
 }
 

@@ -35,6 +35,12 @@ class MenuItemChildSerializer(serializers.ModelSerializer):
 
 
 class MenuItemSerializer(serializers.ModelSerializer):
+    # The model field is required (no blank=True), which made DRF treat
+    # "slug" as a mandatory input — fine for the admin panel (which fills it
+    # in via JS as you type the title), but fragile for any other client.
+    # Making it optional here and auto-generating when missing/blank keeps
+    # the existing generate_slug() helper actually reachable.
+    slug = serializers.SlugField(required=False, allow_blank=True, allow_null=True, max_length=50)
     children = MenuItemChildSerializer(many=True, read_only=True)
 
     class Meta:
@@ -42,9 +48,14 @@ class MenuItemSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'slug', 'parent', 'order', 'is_active', 'children', 'created_at']
 
     def create(self, validated_data):
-        if 'slug' not in validated_data or not validated_data.get('slug'):
+        if not validated_data.get('slug'):
             validated_data['slug'] = generate_slug(validated_data['title'], MenuItem)
         return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        if 'slug' in validated_data and not validated_data.get('slug'):
+            validated_data['slug'] = generate_slug(validated_data.get('title', instance.title), MenuItem)
+        return super().update(instance, validated_data)
 
 
 # ── ARTICLE IMAGE ──
@@ -90,6 +101,12 @@ class ArticleListSerializer(serializers.ModelSerializer):
 
 
 class ArticleDetailSerializer(serializers.ModelSerializer):
+    # The admin panel never sends a "slug" field when creating an article
+    # (there's no input for it), but the model's SlugField has no blank=True,
+    # so DRF was treating it as required and rejecting every new article
+    # before create() got a chance to auto-generate one. Making it optional
+    # here lets generate_slug() actually do its job.
+    slug = serializers.SlugField(required=False, allow_blank=True, allow_null=True, max_length=500)
     cover_image_url = serializers.SerializerMethodField()
     images = ArticleImageSerializer(many=True, read_only=True)
     menu_title = serializers.CharField(source='menu.title', read_only=True)
@@ -117,9 +134,14 @@ class ArticleDetailSerializer(serializers.ModelSerializer):
         return None
 
     def create(self, validated_data):
-        if 'slug' not in validated_data or not validated_data.get('slug'):
+        if not validated_data.get('slug'):
             validated_data['slug'] = generate_slug(validated_data['title'], Article)
         return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        if 'slug' in validated_data and not validated_data.get('slug'):
+            validated_data['slug'] = generate_slug(validated_data.get('title', instance.title), Article)
+        return super().update(instance, validated_data)
 
 
 # ── BANNER ──
