@@ -962,9 +962,19 @@ function prevImg(input, prevId) {
 }
 
 async function deleteItem(endpoint, id, reloadFn) {
-  if (!confirm('O\'chirishga ishonchingiz komilmi?')) return;
+  // For menus: warn if has children
+  if (endpoint === 'menus') {
+    var menu = allMenus.find(function(m){ return m.id === id; });
+    var children = allMenus.filter(function(m){ return m.parent === id; });
+    var msg = children.length
+      ? 'Bu menyuda ' + children.length + ' ta bola menyu bor.\nBarchasini o\'chirasizmi?'
+      : 'Bu menyuni o\'chirasizmi?';
+    if (!confirm(msg)) return;
+  } else {
+    if (!confirm('O\'chirishga ishonchingiz komilmi?')) return;
+  }
   const r = await apiFetch(API + '/' + endpoint + '/' + id + '/', { method: 'DELETE', headers: authH() });
-  if (r.status === 204) { toast('O\'chirildi'); window[reloadFn](); }
+  if (r.status === 204) { toast('O\'chirildi ✅'); window[reloadFn](); }
   else toast('Xatolik', 'error');
 }
 

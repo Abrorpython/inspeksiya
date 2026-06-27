@@ -457,7 +457,7 @@ function showToast(msg,type='success'){const t=document.getElementById('toast');
 let menuSlugMap = {}; // slug -> title, used by the router below
 async function loadMenus() {
   try {
-    const r = await fetch('/api/menus/tree/');
+    const r = await fetch('/api/menus/tree/', { cache: 'no-store' });
     const data = await r.json();
     menuSlugMap = {};
     data.forEach(function(item) {
