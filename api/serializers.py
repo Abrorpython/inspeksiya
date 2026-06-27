@@ -1,7 +1,14 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import MenuItem, Article, ArticleImage, Banner, MediaFile, Contact, SiteSettings
+from io import BytesIO
 import re
+
+try:
+    from PIL import Image
+    from django.core.files.uploadedfile import InMemoryUploadedFile
+except Exception:
+    Image = None
 
 
 def generate_slug(title, Model):
@@ -13,6 +20,64 @@ def generate_slug(title, Model):
         slug = f"{base}-{n}"
         n += 1
     return slug
+
+
+def process_logo_image(uploaded_file):
+    """
+    The site logo is displayed inside a circular frame (object-fit: cover).
+    Many uploaded emblems/seals have transparent padding around the actual
+    artwork, which then shows the frame's background color through the gaps
+    instead of the logo filling it. This trims that transparent padding and
+    pads the remaining artwork to a square canvas, so it always fills the
+    circle correctly no matter how the source file was originally exported.
+    Falls back to the original file untouched if anything goes wrong.
+    """
+    if Image is None:
+        return uploaded_file
+    try:
+        uploaded_file.seek(0)
+        img = Image.open(uploaded_file)
+        img.load()
+        img = img.convert('RGBA')
+    except Exception:
+        try:
+            uploaded_file.seek(0)
+        except Exception:
+            pass
+        return uploaded_file
+
+    try:
+        alpha = img.split()[-1]
+        bbox = alpha.getbbox()
+        if bbox:
+            orig_w, orig_h = img.size
+            bbox_w, bbox_h = bbox[2] - bbox[0], bbox[3] - bbox[1]
+            # Only trim if there's meaningfully empty space to remove
+            if bbox_w < orig_w * 0.98 or bbox_h < orig_h * 0.98:
+                img = img.crop(bbox)
+
+        w, h = img.size
+        if w != h and w > 0 and h > 0:
+            size = max(w, h)
+            square = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+            square.paste(img, ((size - w) // 2, (size - h) // 2), img)
+            img = square
+
+        buf = BytesIO()
+        img.save(buf, format='PNG')
+        buf.seek(0)
+        orig_name = getattr(uploaded_file, 'name', 'logo.png') or 'logo.png'
+        base_name = orig_name.rsplit('.', 1)[0]
+        new_name = base_name + '.png'
+        return InMemoryUploadedFile(
+            buf, None, new_name, 'image/png', buf.getbuffer().nbytes, None
+        )
+    except Exception:
+        try:
+            uploaded_file.seek(0)
+        except Exception:
+            pass
+        return uploaded_file
 
 
 # ── AUTH ──
@@ -201,3 +266,8 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
         if obj.logo and request:
             return request.build_absolute_uri(obj.logo.url)
         return None
+
+    def update(self, instance, validated_data):
+        if validated_data.get('logo'):
+            validated_data['logo'] = process_logo_image(validated_data['logo'])
+        return super().update(instance, validated_data)
