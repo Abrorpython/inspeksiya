@@ -175,6 +175,22 @@ class SiteSettings(models.Model):
     footer_text = models.TextField(blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Hero sarlavha
+    hero_title = models.TextField(
+        blank=True,
+        help_text="Asosiy sarlavha. Yangi qator uchun \\n, oltin rang uchun *matn* ishlating"
+    )
+
+    # 4 ta statistika — hero va banner uchun bitta
+    stat1 = models.CharField(max_length=50, blank=True, default='14', verbose_name='Stat 1 qiymati')
+    stat1_label = models.CharField(max_length=100, blank=True, default='Viloyat', verbose_name='Stat 1 yorliq')
+    stat2 = models.CharField(max_length=50, blank=True, default='12000', verbose_name='Stat 2 qiymati')
+    stat2_label = models.CharField(max_length=100, blank=True, default="Tekshirilgan ob'ekt", verbose_name='Stat 2 yorliq')
+    stat3 = models.CharField(max_length=50, blank=True, default='98', verbose_name='Stat 3 qiymati')
+    stat3_label = models.CharField(max_length=100, blank=True, default='Hal etildi %', verbose_name='Stat 3 yorliq')
+    stat4 = models.CharField(max_length=50, blank=True, default='2011', verbose_name='Stat 4 qiymati')
+    stat4_label = models.CharField(max_length=100, blank=True, default='Tashkil yil', verbose_name='Stat 4 yorliq')
+
     class Meta:
         verbose_name = "Sayt sozlamalari"
 

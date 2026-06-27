@@ -840,36 +840,98 @@ async function loadSettings() {
   document.getElementById('pageContent').innerHTML = '<div style="color:rgba(255,255,255,.4);padding:20px">Yuklanmoqda...</div>';
   const r = await apiFetch(API + '/settings/', { headers: authH() });
   const d = await r.json();
-  var logoImg = d.logo_url ? '<img id="sLogoPrev" class="img-prev" src="' + d.logo_url + '" style="display:block" alt="">' : '<img id="sLogoPrev" class="img-prev" alt="">';
-  document.getElementById('pageContent').innerHTML =
-    '<div style="max-width:680px">' +
-      '<div class="table-wrap" style="margin-bottom:22px"><div class="table-header"><div class="table-title">⚙️ Umumiy Sozlamalar</div></div><div style="padding:28px">' +
-        '<div class="frow"><div class="fg"><label>Sayt nomi</label><input id="sSiteName" type="text" value="' + (d.site_name||'').replace(/"/g,'&quot;') + '"></div><div class="fg"><label>Tagline</label><input id="sTagline" type="text" value="' + (d.tagline||'').replace(/"/g,'&quot;') + '"></div></div>' +
-        '<div class="fg"><label>Logo</label><input type="file" id="sLogo" accept="image/*" onchange="prevImg(this,\'sLogoPrev\')">' + logoImg + '</div>' +
-      '</div></div>' +
-      '<div class="table-wrap" style="margin-bottom:22px"><div class="table-header"><div class="table-title">📞 Aloqa Ma\'lumotlari</div></div><div style="padding:28px">' +
-        '<div class="frow"><div class="fg"><label>Telefon</label><input id="sPhone" type="text" value="' + (d.phone||'') + '"></div><div class="fg"><label>Email</label><input id="sEmail" type="email" value="' + (d.email||'') + '"></div></div>' +
-        '<div class="fg"><label>Manzil</label><textarea id="sAddress" rows="2">' + (d.address||'') + '</textarea></div>' +
-        '<div class="fg"><label>Ish vaqti</label><input id="sHours" type="text" value="' + (d.working_hours||'') + '"></div>' +
-      '</div></div>' +
-      '<div class="table-wrap" style="margin-bottom:22px"><div class="table-header"><div class="table-title">🌐 Ijtimoiy Tarmoqlar</div></div><div style="padding:28px">' +
-        '<div class="fg"><label>Telegram</label><input id="sTelegram" type="url" value="' + (d.telegram||'') + '"></div>' +
-        '<div class="fg"><label>Facebook</label><input id="sFacebook" type="url" value="' + (d.facebook||'') + '"></div>' +
-        '<div class="fg"><label>Instagram</label><input id="sInstagram" type="url" value="' + (d.instagram||'') + '"></div>' +
-      '</div></div>' +
-      '<div class="table-wrap" style="margin-bottom:22px"><div class="table-header"><div class="table-title">🔑 Parol O\'zgartirish</div></div><div style="padding:28px">' +
-        '<div class="fg"><label>Eski parol</label><input id="pOld" type="password"></div>' +
-        '<div class="frow"><div class="fg"><label>Yangi parol</label><input id="pNew" type="password"></div><div class="fg"><label>Tasdiqlash</label><input id="pConf" type="password"></div></div>' +
-        '<button class="btn btn-sm" onclick="changePass()">🔑 O\'zgartirish</button>' +
-      '</div></div>' +
-      '<button class="btn" onclick="saveSettings()" style="width:100%">💾 Sozlamalarni Saqlash</button>' +
-    '</div>';
+  function v(val) { return (val || '').toString().replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+  var logoImg = d.logo_url
+    ? '<img id="sLogoPrev" class="img-prev" src="' + d.logo_url + '" style="display:block" alt="">'
+    : '<img id="sLogoPrev" class="img-prev" alt="">';
+
+  var html = '<div style="max-width:720px">';
+
+  // Umumiy
+  html += '<div class="table-wrap" style="margin-bottom:22px">';
+  html += '<div class="table-header"><div class="table-title">&#9881;&#65039; Umumiy Sozlamalar</div></div>';
+  html += '<div style="padding:28px">';
+  html += '<div class="frow"><div class="fg"><label>Sayt nomi</label><input id="sSiteName" type="text" value="' + v(d.site_name) + '"></div>';
+  html += '<div class="fg"><label>Tagline</label><input id="sTagline" type="text" value="' + v(d.tagline) + '"></div></div>';
+  html += '<div class="fg"><label>Logo</label><input type="file" id="sLogo" accept="image/*" onchange="prevImg(this,\'sLogoPrev\')"><br>' + logoImg + '</div>';
+  html += '</div></div>';
+
+  // Hero sarlavha
+  html += '<div class="table-wrap" style="margin-bottom:22px">';
+  html += '<div class="table-header"><div class="table-title">&#127968; Asosiy sahifa sarlavha</div></div>';
+  html += '<div style="padding:28px">';
+  html += '<div class="fg"><label>Sarlavha matni</label>';
+  html += '<textarea id="sHeroTitle" rows="4">' + v(d.hero_title) + '</textarea>';
+  html += '<small style="color:rgba(255,255,255,.35);font-size:11px">Yangi qator: <b>\\n</b> | Oltin rang: <b>*matn*</b><br>Masalan: Qurilish va Uy-Joy\\nKommunal Xo&#39;jaligi\\n*Nazorat Inspeksiyasi*</small></div>';
+  html += '</div></div>';
+
+  // Statistika
+  html += '<div class="table-wrap" style="margin-bottom:22px">';
+  html += '<div class="table-header"><div class="table-title">&#128202; Statistika raqamlari</div>';
+  html += '<small style="color:rgba(255,255,255,.35);font-size:11px">Hero va pastki banner bir xil joydan o&#39;qiydi</small></div>';
+  html += '<div style="padding:28px">';
+  html += '<div class="frow"><div class="fg"><label>1-raqam qiymati</label><input id="sStat1" type="text" value="' + v(d.stat1 || '14') + '"></div>';
+  html += '<div class="fg"><label>1-raqam yorlighi</label><input id="sStat1L" type="text" value="' + v(d.stat1_label || 'Viloyat') + '"></div></div>';
+  html += '<div class="frow"><div class="fg"><label>2-raqam qiymati</label><input id="sStat2" type="text" value="' + v(d.stat2 || '12000') + '"></div>';
+  html += '<div class="fg"><label>2-raqam yorlighi</label><input id="sStat2L" type="text" value="' + v(d.stat2_label || "Tekshirilgan ob'ekt") + '"></div></div>';
+  html += '<div class="frow"><div class="fg"><label>3-raqam qiymati</label><input id="sStat3" type="text" value="' + v(d.stat3 || '98') + '"></div>';
+  html += '<div class="fg"><label>3-raqam yorlighi</label><input id="sStat3L" type="text" value="' + v(d.stat3_label || 'Hal etildi %') + '"></div></div>';
+  html += '<div class="frow"><div class="fg"><label>4-raqam qiymati</label><input id="sStat4" type="text" value="' + v(d.stat4 || '2011') + '"></div>';
+  html += '<div class="fg"><label>4-raqam yorlighi</label><input id="sStat4L" type="text" value="' + v(d.stat4_label || 'Tashkil yil') + '"></div></div>';
+  html += '</div></div>';
+
+  // Boglanish
+  html += '<div class="table-wrap" style="margin-bottom:22px">';
+  html += '<div class="table-header"><div class="table-title">&#128222; Boglanish malumotlari</div></div>';
+  html += '<div style="padding:28px">';
+  html += '<div class="frow"><div class="fg"><label>Telefon</label><input id="sPhone" type="text" value="' + v(d.phone) + '"></div>';
+  html += '<div class="fg"><label>Email</label><input id="sEmail" type="email" value="' + v(d.email) + '"></div></div>';
+  html += '<div class="fg"><label>Manzil</label><textarea id="sAddress" rows="2">' + v(d.address) + '</textarea></div>';
+  html += '<div class="fg"><label>Ish vaqti</label><input id="sHours" type="text" value="' + v(d.working_hours) + '"></div>';
+  html += '</div></div>';
+
+  // Ijtimoiy tarmoqlar
+  html += '<div class="table-wrap" style="margin-bottom:22px">';
+  html += '<div class="table-header"><div class="table-title">&#127760; Ijtimoiy Tarmoqlar</div>';
+  html += '<small style="color:rgba(255,255,255,.35);font-size:11px">Nav ikonalari va footer yozuvlariga tadbiq etiladi</small></div>';
+  html += '<div style="padding:28px">';
+  html += '<div class="fg"><label>Telegram URL</label><input id="sTelegram" type="url" placeholder="https://t.me/kanal_nomi" value="' + v(d.telegram) + '"></div>';
+  html += '<div class="fg"><label>Facebook URL</label><input id="sFacebook" type="url" placeholder="https://facebook.com/sahifa" value="' + v(d.facebook) + '"></div>';
+  html += '<div class="fg"><label>Instagram URL</label><input id="sInstagram" type="url" placeholder="https://instagram.com/akkaunt" value="' + v(d.instagram) + '"></div>';
+  html += '</div></div>';
+
+  // Parol
+  html += '<div class="table-wrap" style="margin-bottom:22px">';
+  html += '<div class="table-header"><div class="table-title">&#128273; Parol O\'zgartirish</div></div>';
+  html += '<div style="padding:28px">';
+  html += '<div class="fg"><label>Eski parol</label><input id="pOld" type="password"></div>';
+  html += '<div class="frow"><div class="fg"><label>Yangi parol</label><input id="pNew" type="password"></div>';
+  html += '<div class="fg"><label>Tasdiqlash</label><input id="pConf" type="password"></div></div>';
+  html += '<button class="btn btn-sm" onclick="changePass()">&#128273; O\'zgartirish</button>';
+  html += '</div></div>';
+
+  html += '<button class="btn" onclick="saveSettings()" style="width:100%">&#128190; Sozlamalarni Saqlash</button>';
+  html += '</div>';
+
+  document.getElementById('pageContent').innerHTML = html;
 }
 
 async function saveSettings() {
   var form = new FormData();
-  var fields = { site_name:'sSiteName', tagline:'sTagline', phone:'sPhone', email:'sEmail', address:'sAddress', working_hours:'sHours', telegram:'sTelegram', facebook:'sFacebook', instagram:'sInstagram' };
-  for (var k in fields) form.append(k, document.getElementById(fields[k]).value);
+  var fields = {
+    site_name:'sSiteName', tagline:'sTagline',
+    phone:'sPhone', email:'sEmail', address:'sAddress', working_hours:'sHours',
+    telegram:'sTelegram', facebook:'sFacebook', instagram:'sInstagram',
+    hero_title:'sHeroTitle',
+    stat1:'sStat1', stat1_label:'sStat1L',
+    stat2:'sStat2', stat2_label:'sStat2L',
+    stat3:'sStat3', stat3_label:'sStat3L',
+    stat4:'sStat4', stat4_label:'sStat4L'
+  };
+  for (var k in fields) {
+    var el = document.getElementById(fields[k]);
+    if (el) form.append(k, el.value);
+  }
   var logo = document.getElementById('sLogo').files[0];
   if (logo) form.append('logo', logo);
   const r = await apiFetch(API + '/settings/', { method: 'PATCH', headers: authHForm(), body: form });

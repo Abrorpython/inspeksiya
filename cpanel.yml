@@ -1,0 +1,8 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/qashinsp/inspeksiya
+    - /bin/cp -r $DEPLOYPATH/frontend /home/qashinsp/public_html/
+    - cd $DEPLOYPATH && pip3 install -r requirements.txt --break-system-packages
+    - cd $DEPLOYPATH && python3 manage.py migrate --noinput
+    - cd $DEPLOYPATH && python3 manage.py collectstatic --noinput
